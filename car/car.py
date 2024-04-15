@@ -13,6 +13,12 @@ red = (255,0,0)
 pink = (255,0,255)
 blue = (0, 191, 255)
 
+def set_charge_true():
+    charging = True
+
+def set_charge_false():
+    charging = False
+
 def set_charge_level(input_charge):
     global charge_level
     if input_charge > 100 or input_charge < 0:
@@ -53,6 +59,7 @@ while True:
 
    
 def main():
+    charger_address = "10.0.1.1" #local ip of charger
     host = 'charger.local'
     port = 22
     
