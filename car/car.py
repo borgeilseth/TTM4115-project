@@ -45,19 +45,21 @@ def turn_on_led_rows(number_rows):
         for j in range(8):
             sense.set_pixel(j, i, 255, 255, 255)
 
-while True:
-    if charging == True:
-        sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
-        time.sleep(1)
-        increase_charge()
 
-    else:
-        sense.show_message(str(charge_level)+"%", back_colour=red, text_colour=blue)
-        time.sleep(3)
-        decrease_charge()
+def main():
+    while True:
+        if charging == True:
+            sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
+            time.sleep(1)
+            increase_charge()
+
+        else:
+            sense.show_message(str(charge_level)+"%", back_colour=red, text_colour=blue)
+            time.sleep(3)
+            decrease_charge()
     
 
-   
+'''
 def main():
     charger_address = "10.0.1.1" #local ip of charger
     host = 'charger.local'
@@ -73,8 +75,8 @@ def main():
     
     client_socket.close()
     pass
+'''
     
-
 
 if __name__ == '__main__':
     main()
