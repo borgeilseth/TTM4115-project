@@ -30,6 +30,15 @@ def decrease_charge():
     if charge_level > 0:
         charge_level -= 1
 
+# Function for turning led rows on, depending on the percentage of batery
+def turn_on_led_rows(number_rows):
+    
+    number_rows = max(1, min(number_rows, 8))
+    
+    for i in range(number_rows):
+        for j in range(8):
+            sense.set_pixel(j, i, 255, 255, 255)
+
 while True:
     if charging == True:
         sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
