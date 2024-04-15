@@ -44,8 +44,8 @@ while True:
 
    
 def main():
-    host = 'charger.local'  # IP del servidor
-    port = 22  # Puerto de comunicación
+    host = 'charger.local'
+    port = 22
     
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
