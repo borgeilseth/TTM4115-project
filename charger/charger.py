@@ -2,7 +2,7 @@ from config import *
 import socket
 
 def main():
-host = '0.0.0.0'
+host = 'charger.local'
 port = 22
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
