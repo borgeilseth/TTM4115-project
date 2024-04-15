@@ -18,9 +18,19 @@ print(f"Conexion from: {client_address}")
 
 while True:
     data = client_socket.recv(1024)
+    if data.strip() == b'Requirenment for conexion': #Our requirenment could be the log-in user or the password
+        print("Conexion Permited")
+        break
+    else:
+        print("Conexion Not Permited")
+        client_socket.close()
+
+while True:
+    data = client_socket.recv(1024)  # Recibe datos del cliente
     if not data:
         break
-    print("The server had recieved:", data.decode())
+        
+print("We had recieved:", data.decode())
     
 client_socket.close()
 server_socket.close()
