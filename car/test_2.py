@@ -6,7 +6,7 @@ def check_connection():
     return "eth0" in psutil.net_if_stats() and psutil.net_if_stats()['eth0'].isup
 
 async def tcp_echo_client(message, loop):
-    reader, writer = await asyncio.open_connection('192.168.1.1', 12345, loop=loop)
+    reader, writer = await asyncio.open_connection('10.0.1.1', 12345, loop=loop)
     print(f'Send: {message}')
     writer.write(message.encode())
 
