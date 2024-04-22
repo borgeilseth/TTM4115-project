@@ -39,8 +39,12 @@ try:
             sense.clear(0, 255, 0)
             if client_socket:
                 try:
-                    client_socket.sendall("Hello from the client!".encode())
-                    print("Message sent")
+                    message = "Hello from the client!"
+                    client_socket.sendall(message.encode())
+                    print("Message sent:", message)
+                    # Receive response from the server
+                    response = client_socket.recv(1024).decode()
+                    print("Received from server:", response)
                 except socket.error:
                     print("Connection lost. Reconnecting...")
                     client_socket.close()

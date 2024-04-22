@@ -32,12 +32,20 @@ try:
 
             try:
                 data = connection.recv(1024)
-                print("Received:", data.decode())
+                if not data:
+                    raise ConnectionResetError
+                message = data.decode()
+                print("Received:", message)
+                # Echo the received message back to the client
+                connection.sendall(f"Echo: {message}".encode())
             except socket.timeout:
                 print("Socket timeout: No data received")
                 connection.close()
                 connection = None
-
+            except ConnectionResetError:
+                print("Client disconnected")
+                connection.close()
+                connection = None
         else:
             if connection:
                 connection.close()
