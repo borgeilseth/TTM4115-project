@@ -31,10 +31,10 @@ def set_charge_level(input_charge):
     else:    
         charge_level = input_charge
 
-def increase_charge():
+def increase_charge(threshold, speed):
     global charge_level
-    if charge_level < 100:
-        charge_level += 1
+    if charge_level < 100 and charge_level < threshold:
+        charge_level += speed
 
 def decrease_charge():
     global charge_level
