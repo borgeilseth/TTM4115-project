@@ -1,6 +1,7 @@
 import socket
 import psutil
 import time
+from sense_hat import SenseHat
 
 from config import *
 
@@ -12,6 +13,8 @@ server_port = CHARGER_PORT
 
 client_socket = None
 
+sense = SenseHat()
+
 def connect_to_server():
     global client_socket
     while check_connection():
@@ -19,9 +22,11 @@ def connect_to_server():
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((server_ip, server_port))
             print("Connected to server")
+            sense.color = (0, 255, 0)
             return
         except socket.error as e:
             print("Failed to connect to server, retrying:", e)
+            sense.color = (255, 0, 0)
             time.sleep(1)
             if client_socket:
                 client_socket.close()
