@@ -9,7 +9,6 @@ def check_connection():
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.settimeout(2)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((CHARGER_IP, CHARGER_PORT))
     server_socket.listen(1)
@@ -28,6 +27,7 @@ try:
             if connection is None:
                 print("Waiting for a client...")
                 connection, addr = server_socket.accept()
+                connection.settimeout(3)
                 print(f"Connected to {addr}")
 
             try:
@@ -35,6 +35,10 @@ try:
                 if not data:
                     raise ConnectionResetError
                 print("Received:", data.decode())
+            except socket.timeout:
+                print("Socket timeout: No data received")
+                connection.close()
+                connection = None
             except ConnectionResetError:
                 print("Client disconnected")
                 connection.close()
