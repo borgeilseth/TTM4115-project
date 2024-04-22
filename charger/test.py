@@ -9,6 +9,7 @@ def check_connection():
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.settimeout(2)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((CHARGER_IP, CHARGER_PORT))
     server_socket.listen(1)
