@@ -22,11 +22,9 @@ def connect_to_server():
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((server_ip, server_port))
             print("Connected to server")
-            sense.clear(0, 255, 0)
             return
         except socket.error as e:
             print("Failed to connect to server, retrying:", e)
-            sense.clear(255, 0, 0)
             time.sleep(1)
             if client_socket:
                 client_socket.close()
@@ -38,6 +36,7 @@ try:
             if client_socket is None:
                 connect_to_server()
 
+            sense.clear(0, 255, 0)
             if client_socket:
                 try:
                     client_socket.sendall("Hello from the client!".encode())
@@ -52,8 +51,12 @@ try:
                 print("Ethernet Disconnected")
                 client_socket.close()
                 client_socket = None
+                sense.clear(255, 0, 0)
+
+                
         time.sleep(1)
 except KeyboardInterrupt:
     if client_socket:
         client_socket.close()
+    sense.clear()
     print("Client terminated")
