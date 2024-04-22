@@ -22,11 +22,11 @@ def connect_to_server():
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((server_ip, server_port))
             print("Connected to server")
-            sense.color = (0, 255, 0)
+            sense.clear(0, 255, 0)
             return
         except socket.error as e:
             print("Failed to connect to server, retrying:", e)
-            sense.color = (255, 0, 0)
+            sense.clear(255, 0, 0)
             time.sleep(1)
             if client_socket:
                 client_socket.close()
