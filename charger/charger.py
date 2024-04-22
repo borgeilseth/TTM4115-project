@@ -1,5 +1,13 @@
 from config import *
+from car import set_charge_true, set_charge_false
 import socket
+
+authenticated = True
+
+if authenticated:
+    set_charge_true()
+else:
+    set_charge_false()
 
 def main():
     host = 'charger.local'
