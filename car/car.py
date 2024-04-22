@@ -2,7 +2,12 @@ from config import *
 import socket
 from sense_hat import SenseHat
 import time
+from config import *
 
+server_ip = CHARGER_IP
+server_port = CHARGER_PORT
+
+first_conect = True
 sense = SenseHat()
 
 charge_level = 0
@@ -47,16 +52,36 @@ def turn_on_led_rows(number_rows):
 
 
 def main():
-    while True:
-        if charging == True:
-            sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
-            time.sleep(1)
-            increase_charge()
+    if first_conect:
+        
+        first_conect = False
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((server_ip, server_port))
+        client_socket.sendall(b'Send Password') #First the client send the password to conect to the charager
+        
+        return 
+        
+    else:
+        
+        client_socket.sendall(b'Able to charge')
+        charging = True
 
-        else:
-            sense.show_message(str(charge_level)+"%", back_colour=red, text_colour=blue)
-            time.sleep(3)
-            decrease_charge()
+        while True:
+            if charging == True:
+                sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
+                time.sleep(1)
+
+                number_rows = round(charge_level/100 * 8)
+                turn_on_led_rows(number_rows)
+                increase_charge()
+                return
+
+            else:
+                sense.show_message(str(charge_level)+"%", back_colour=red, text_colour=blue)
+                time.sleep(3)
+                decrease_charge()
+
+
     
 
 '''
