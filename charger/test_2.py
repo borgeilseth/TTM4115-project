@@ -19,6 +19,17 @@ def handle_client(connection):
     except (ConnectionResetError, socket.timeout):
         print("Client disconnected or timeout")
         connection.close()
+        
+def send_messages(connection):
+    while True:
+        if connection:
+            try:
+                message = "Server message at {}".format(time.ctime())
+                connection.sendall(message.encode())
+                print("Sent:", message)
+            except socket.error:
+                print("Failed to send message")
+        time.sleep(1)
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -34,24 +45,12 @@ def start_server():
             connection.settimeout(10)
             print(f"Connected to {addr}")
             threading.Thread(target=handle_client, args=(connection,)).start()
+            threading.Thread(target=send_messages, args=(connection,)).start()
         else:
             print("Ethernet Disconnected")
         time.sleep(1)
         
 server_socket = None
-connection = None
-
-def send_messages():
-    while True:
-        if connection:
-            try:
-                message = "Server message at {}".format(time.ctime())
-                connection.sendall(message.encode())
-                print("Sent:", message)
-            except socket.error:
-                print("Failed to send message")
-        time.sleep(5)
 
 if __name__ == "__main__":
     threading.Thread(target=start_server).start()
-    send_messages()

@@ -42,7 +42,7 @@ def manage_connection():
                 print("Connection failed:", e)
                 if client_socket:
                     client_socket.close()
-                time.sleep(5)
+                time.sleep(1)
         else:
             print("Ethernet Disconnected")
             time.sleep(1)
