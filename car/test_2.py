@@ -1,51 +1,32 @@
+import asyncio
 import socket
 import psutil
-import time
-import threading
-
-from config import *
 
 def check_connection():
     return "eth0" in psutil.net_if_stats() and psutil.net_if_stats()['eth0'].isup
 
-def receive_messages(client_socket):
-    while True:
-        try:
-            data = client_socket.recv(1024)
-            if data:
-                print("Received from server:", data.decode())
-        except socket.error:
-            print("Lost connection to the server.")
-            break
+async def tcp_echo_client(message, loop):
+    reader, writer = await asyncio.open_connection('192.168.1.1', 12345, loop=loop)
+    print(f'Send: {message}')
+    writer.write(message.encode())
 
-def send_messages(client_socket):
-    while True:
-        try:
-            message = "Hello from client at {}".format(time.ctime())
-            client_socket.sendall(message.encode())
-            print("Sent:", message)
-            time.sleep(5)
-        except socket.error:
-            print("Failed to send message")
-            break
+    data = await reader.read(100)
+    print(f'Received: {data.decode()}')
 
-def manage_connection():
+    print('Close the connection')
+    writer.close()
+
+async def send_messages():
     while True:
         if check_connection():
             try:
-                client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                client_socket.connect((CHARGER_IP, CHARGER_PORT))
-                print("Connected to server")
-                threading.Thread(target=receive_messages, args=(client_socket,)).start()
-                send_messages(client_socket)
-            except socket.error as e:
-                print("Connection failed:", e)
-                if client_socket:
-                    client_socket.close()
-                time.sleep(1)
+                message = "Hello World!"
+                loop = asyncio.get_running_loop()
+                await tcp_echo_client(message, loop)
+            except Exception as e:
+                print(f"Failed to send message: {e}")
         else:
             print("Ethernet Disconnected")
-            time.sleep(1)
+        await asyncio.sleep(5)
 
-if __name__ == "__main__":
-    manage_connection()
+asyncio.run(send_messages())
