@@ -3,6 +3,8 @@ import psutil
 import time
 import threading
 
+from config import *
+
 def check_connection():
     return "eth0" in psutil.net_if_stats() and psutil.net_if_stats()['eth0'].isup
 
@@ -32,7 +34,7 @@ def manage_connection():
         if check_connection():
             try:
                 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                client_socket.connect(('192.168.1.1', 12345))
+                client_socket.connect((CHARGER_IP, CHARGER_PORT))
                 print("Connected to server")
                 threading.Thread(target=receive_messages, args=(client_socket,)).start()
                 send_messages(client_socket)
