@@ -1,30 +1,25 @@
 import socket
-from sense_hat import SenseHat
+import psutil
+import time
 
-def start_server(host='10.0.1.1', port=65432):
-    sense = SenseHat()
-    
-    # Create a socket object using IPv4 and TCP protocol
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        # Bind the socket to the host and port
-        s.bind((host, port))
-        # Listen for incoming connections
-        s.listen()
-        print("Server started. Waiting for connection...")
-        # Accept any incoming connection
-        conn, addr = s.accept()
-        with conn:
-            print(f"Connected by {addr}")
-            while True:
-                # Receive data from the client
-                data = conn.recv(1024)
-                if not data:
-                    break
-                # Print received message
-                print("Received:", data.decode())
-                sense.show_message(data.decode())
-                # Send a response back to the client
-                conn.sendall(data)
+def check_connection():
+    return "eth0" in psutil.net_if_stats() and psutil.net_if_stats()['eth0'].isup
 
-if __name__ == '__main__':
-    start_server()
+server_ip = '192.168.1.1'
+server_port = 12345
+
+try:
+    while True:
+        connected = check_connection()
+        if connected:
+            print("Ethernet Connected")
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.connect((server_ip, server_port))
+                client_socket.sendall("Hello from the client!".encode())
+                client_socket.close()
+            print("Message sent")
+        else:
+            print("Ethernet Disconnected")
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Program terminated")
