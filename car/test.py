@@ -7,18 +7,48 @@ from config import *
 def check_connection():
     return "eth0" in psutil.net_if_stats() and psutil.net_if_stats()['eth0'].isup
 
+server_ip = CHARGER_IP
+server_port = CHARGER_PORT
+
+client_socket = None
+
+def connect_to_server():
+    global client_socket
+    while check_connection():
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((server_ip, server_port))
+            print("Connected to server")
+            return
+        except socket.error as e:
+            print("Failed to connect to server, retrying:", e)
+            time.sleep(1)
+            if client_socket:
+                client_socket.close()
+                client_socket = None
+
 try:
     while True:
-        connected = check_connection()
-        if connected:
-            print("Ethernet Connected")
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-                client_socket.connect((CHARGER_IP, CHARGER_PORT))
-                client_socket.sendall("Hello from the client!".encode())
-                client_socket.close()
-            print("Message sent")
+        if check_connection():
+            if client_socket is None:
+                connect_to_server()
+
+            if client_socket:
+                try:
+                    client_socket.sendall("Hello from the client!".encode())
+                    print("Message sent")
+                except socket.error:
+                    print("Connection lost. Reconnecting...")
+                    client_socket.close()
+                    client_socket = None
+                    connect_to_server()
         else:
-            print("Ethernet Disconnected")
+            if client_socket:
+                print("Ethernet Disconnected")
+                client_socket.close()
+                client_socket = None
         time.sleep(1)
 except KeyboardInterrupt:
-    print("Program terminated")
+    if client_socket:
+        client_socket.close()
+    print("Client terminated")
