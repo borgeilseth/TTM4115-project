@@ -1,13 +1,15 @@
 from stmpy import Machine, Driver
 import random
+import re 
 import time
 from config import *
 import json
 import socket
 
-global current_charge
 
 class Charger:
+
+    current_charge = None
     
     """
         possible states:
@@ -35,7 +37,23 @@ class Charger:
     
     def check_user(self):
         "Check user"
-        return True
+        
+        if re.match(r'^\d{4}-\d{4}-\d{4}$', USERS[0]['UUID']) is not None:
+            Id = True 
+        else:
+            Id = False 
+
+        if re.match(r'^[A-Za-z]+$', USERS[0]['name']) is not None:
+            name = True
+        else: 
+            name = False 
+        
+        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', USERS[0]['email']) is not None: 
+            email = True
+        else:
+            email = False 
+
+        return (Id and name and USERS[0]['valid_payment'] and email)     
 
     def check_user_transition(self):
         if Charger.check_user(self):
@@ -52,8 +70,18 @@ class Charger:
     def stop_charging(self):
         print ('charging done')
 
-    def on_idle(self):              
-        print('Idling')        
+    def done(self):
+        self.stm.terminate()
+
+    def charge(self):
+        max_speed = INFO['max_speed']
+
+        if self.current_charge < MAX_CHARGE_PERCENTAGE:
+            self.current_charge += max_speed
+            print(f"You are now at {current_charge}%") 
+
+        if current_charge  >= MAX_CHARGE_PERCENTAGE:
+            print("You are currently at your preferred charge level.")
         
     def build_message(self) -> dict:
         if self.stm.state() == "charging":
@@ -69,6 +97,15 @@ class Charger:
     
     def receive_message(self, message: dict):
         print("Received from car: \n \t", message)
+        if INFO['status'] == 'connect':
+            self.max_speed = message.get('max_speed', 1)
+            # ...
+            self.stm.send('connect')
+
+        if message['status'] == 'charging':
+            current_charge = message.get('current_charge', 0)
+            self.stm.send('still_charging')
+        # kan ha to tilstander, connect og charging 
 
 
 # Transitions
@@ -76,7 +113,6 @@ t0 = {
     'trigger': '',
     'source': 'initial',
     'target': 'idle',
-    'effect': 'on_idle; start_timer("t", 1000)'
 }
 
 #validate
@@ -87,28 +123,44 @@ t1 = {
     'effect': 'check_user_transition'
 }
 
-#start charging
+#error
 t2 = {
+    'trigger': 'invalid_user',
+    'source': 'validating',
+    'target': 'disconnect',
+    'effect': 'invalid_error'
+}
+
+#start charging
+t3 = {
     'trigger': 'valid_user',
     'source': 'validating',
     'target': 'charging',
     'effect': 'check_settings; charge'
 }
 
-#error
-t3 = {
-    'trigger': 'invalid_user',
-    'source': 'validating',
-    'target': 'idle',
-    'effect': 'invalid_error'
+#loop transition
+t4 = {
+    'trigger': 'still_charging',
+    'source': 'charging',
+    'target': 'charging',
+    'effect': 'charge'
 }
 
 #done charging
-t4 = {
+t5 = {
     'trigger': 'done_charging',
     'source': 'charging',
-    'target': 'idle',
+    'target': 'disconnect',
     'effect': 'stop_charging'
+}
+
+#disconnected, back to idle
+t6 = {
+    'trigger': 'disonnect',
+    'source': 'disconnect',
+    'target': 'idle',
+    'effect': 'done'
 }
 
 def send_message(s, message):
@@ -137,7 +189,7 @@ def start_server(host='127.0.0.1', port=65432):
 # State machine for the charger
 charger = Charger()
 
-machine = Machine(name='charger', transitions=[t0, t1, t2, t3, t4], obj=charger)
+machine = Machine(name='charger', transitions=[t0, t1, t2, t3, t4, t5, t6], obj=charger)
 charger.stm = machine
 
 driver = Driver()

@@ -10,6 +10,7 @@ USERS = [
         'UUID': '1234-5678-9101',
         'name': 'Elias',
         'valid_payment': True,
+        'email': "user@gmail.com",
         'cars': [
             {
                 'WIN': '1234567890ABCDEF',
@@ -21,3 +22,11 @@ USERS = [
         ]
     }
 ]
+
+INFO = {
+    'owner': "navn navnesen",
+    'status': "connected",
+    'current_charge': 27,
+    'max_capacity': 100,
+    'max_speed': CHARGING_SPEED,
+}
