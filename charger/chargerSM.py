@@ -1,28 +1,40 @@
 
 from stmpy import Machine, Driver
+import random
+import time
+from config import *
+
+max_charge = Charging_percent
+global current_charge 
+current_charge = random.randint(1, 80)
 
 
 #Actions
 class Charger:
-
+    
     def check_user(self):
-        return True
+        "sjekker user her"
+        return True 
 
-    # def compound(self):
-    #     boolean = self.check_user()
-    #     if boolean:
-    #         return 'charging'
-    #     else:
-    #         return 'idle'
+    def check_user_transition(self):
+        if Charger.check_user(self):
+            self.stm.send("valid_user")
+        else:
+            self.stm.send("invalid_user")
 
-    # def compound_effects(self):
-    #     if self.compound() == 'charging':
-    #         return 'charge; check_settings'
-    #     else:
-    #         return 'invalid_error'
+    def charge(self):    
+        global current_charge 
 
-    def charging(self):
-        print ('charging')
+        while current_charge < max_charge:
+            print("Ten electricity to you :)")
+            current_charge += 10
+            time.sleep(1)
+            print(f"You are now at {current_charge}%") 
+
+        if current_charge >= max_charge:
+            print("You are currently at your preffered charge level.")
+            self.stm.send("done_charging")
+            
 
     def check_settings(self):
         print ('checking settings')
@@ -33,59 +45,61 @@ class Charger:
     def stop_charging(self):
         print ('charging done')
 
-    def on_idle(self):
+    def on_idle(self):              
         print('Idling')
 
-    # def on_charge(self):
-    #     print('Charging')
-
-
+    def buildMessage(self):
+        return ""
+    
+    def sendMessage(self):
+        return ""
+    
 
 charger = Charger()
 
 #Transitions:
-#Initial transitions
+#initial transition
 t0 = {
+    'trigger': '',
     'source': 'initial',
     'target': 'idle',
+    'effect': 'on_idle; start_timer("t", 1000)'
 }
 
-#Compound transition
+#validate
 t1 = {
-    'trigger': 't', #??
+    'trigger': 't',
     'source': 'idle',
-    'target': '-',
-    'action': 'check_user()',
-    'guard': "check_user() ? 'charge' : 'idle'",
-    'effect': "check_user() ? 'charging' : 'invalid_error'"
+    'target': 'validating',
+    'effect': 'check_user_transition'
 }
 
-#Done charging
+#start charging
 t2 = {
-    'trigger': 't1',
-    'source': 'charge',
+    'trigger': 'valid_user',
+    'source': 'validating',
+    'target': 'charging',
+    'effect': 'check_settings; charge'
+}
+
+#error
+t3 = {
+    'trigger': 'invalid_user',
+    'source': 'validating',
+    'target': 'idle',
+    'effect': 'invalid_error'
+}
+
+#done charging
+t4 = {
+    'trigger': 'done_charging',
+    'source': 'charging',
     'target': 'idle',
     'effect': 'stop_charging'
 }
-
-#States
-idle = {
-    'name': 'idle',
-    'entry': 'on_idle; start_timer("t", 1000)'
-}
-
-charge = {
-    'name': 'charge',
-    'entry': 'charging; start_timer("t1", 1000)'
-}
  
 
-machine = Machine(
-    name='charger', 
-    transitions=[t0, t1, t2], 
-    obj=charger, 
-    states=[idle, charge]
-)
+machine = Machine(name='charger', transitions=[t0, t1, t2, t3, t4], obj=charger)
 charger.stm = machine
 
 driver = Driver()
