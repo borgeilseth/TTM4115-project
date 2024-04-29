@@ -1,5 +1,8 @@
-
+# Network settings
 CHARGER_IP = '10.0.1.1'
 CHARGER_PORT = 12345
 
-CAR_IP = '10.0.1.2'
+# Charging settings
+MAX_CHARGING_SPEED = 10
+MAX_CHARGE_CAPACITY = 100
+INITIAL_CHARGE = 5
