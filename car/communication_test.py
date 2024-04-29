@@ -1,6 +1,5 @@
 import socket
 import json
-import time
 from config import *
 
 
@@ -36,8 +35,12 @@ class Car():
     def receive_message(self, message: dict):
         if message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
+            print(f"Current charge: {self.current_charge}")
         elif message["status"] == "disconnect":
             self.state = "idle"
+
+
+car = Car()
 
 
 def send_message(sock, message):
@@ -48,28 +51,29 @@ def send_message(sock, message):
         print("Failed to serialize message")
 
 
-def start_client(server_host='127.0.0.1', server_port=65432):
+def start_client(server_host='127.0.0.1', server_port=65439):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
             sock.connect((server_host, server_port))
             print("Connected to server")
 
             send_message(sock, car.build_connect_message())
-            while car.state != "idle":
+            while True:
                 data = sock.recv(1024)
                 if not data:
                     break
                 try:
                     received_message = json.loads(data.decode())
+                    print("Received from server:", received_message)
                     car.receive_message(received_message)
-                    send_message(sock, car.build_charging_message())
+
+                    send_message(
+                        sock, car.build_charging_message())
                 except json.JSONDecodeError:
                     print("Failed to decode message")
         except socket.error as e:
             print(f"Socket error: {e}")
 
-
-car = Car()
 
 if __name__ == "__main__":
     # start_client(CHARGER_IP, CHARGER_PORT)
