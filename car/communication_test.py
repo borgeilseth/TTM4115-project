@@ -33,6 +33,8 @@ class Car():
             self.state = "charging"
 
     def receive_message(self, message: dict):
+        if not message:
+            return
         if message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
             print(f"Current charge: {self.current_charge}")

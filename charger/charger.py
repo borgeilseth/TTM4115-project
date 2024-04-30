@@ -43,12 +43,8 @@ class Charger:
     def __init__(self, initial_config):
         self.config = initial_config
 
-    # Config setter and getter
     def set_config(self, new_config):
         self.config.update(new_config)
-
-    def get_config(self):
-        return self.config
 
     def check_user(self):
         """Check user"""
@@ -213,11 +209,11 @@ def config():
         charger.set_config(data)
         return jsonify({
             "message": "Configuration updated",
-            "new_config": charger.get_config()
+            "new_config": charger.config
         }), 200
     elif request.method == 'GET':
         # Retrieve current configuration parameters
-        return jsonify(charger.get_config()), 200
+        return jsonify(charger.config), 200
 
 
 def start_flask():
