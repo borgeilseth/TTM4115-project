@@ -46,7 +46,7 @@ class Charger:
     def set_config(self, new_config):
         self.config.update(new_config)
         self.config['charging_speed'] = min(
-            self.config['max_charging_speed'],
+            self.config.get('max_charging_speed', 0),
             self.config['selected_charging_speed']
         )
 
@@ -89,8 +89,7 @@ class Charger:
         if max_charging_level - self.config['current_charge'] < self.config['charging_speed']:
             self.config['charging_speed'] = max_charging_level - \
                 self.config['current_charge']
-            print(f"Charging speed adjusted to {
-                  self.config['charging_speed']}")
+            print(f"Charging speed adjusted to {self.config['charging_speed']}")
             return
 
     def build_message(self) -> dict:

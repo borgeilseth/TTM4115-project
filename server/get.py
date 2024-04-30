@@ -1,6 +1,6 @@
 import requests
 
-URL = "http://192.168.95.158:5001"
+URL = "http://192.168.95.194:5001"
 
 
 r = requests.get(url = URL)
