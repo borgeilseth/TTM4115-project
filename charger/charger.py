@@ -48,33 +48,40 @@ class Charger:
 
     def check_user(self):
         """Check user"""
-
-        if re.match(r'^\d{4}-\d{4}-\d{4}$', USERS[0]['UUID']) is not None:
-            Id = True
-        else:
-            Id = False
-
-        if re.match(r"^[A-Za-z]+$", USERS[0]['name']) is not None:
-            name = True
-        else:
-            name = False
-
-        if (
-            re.match(
-                r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", USERS[0]['email']
-            )
-            is not None
-        ):
-            email = True
-        else:
-            email = False
-
-        if (Id == True) and (name == True) and (email == True):
-            #return Id and name and USERS[0]['valid_payment'] and email and True
-            return True
-        else:
-            #return Id and name and USERS[0]['valid_payment'] and email and False
+        if not self.config['allow_charging']:
             return False
+
+        if not self.config['id'] in self.config['allowed_cars']:
+            return False
+
+        return True
+
+        # if re.match(r'^\d{4}-\d{4}-\d{4}$', USERS[0]['UUID']) is not None:
+        #     Id = True
+        # else:
+        #     Id = False
+
+        # if re.match(r"^[A-Za-z]+$", USERS[0]['name']) is not None:
+        #     name = True
+        # else:
+        #     name = False
+
+        # if (
+        #     re.match(
+        #         r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", USERS[0]['email']
+        #     )
+        #     is not None
+        # ):
+        #     email = True
+        # else:
+        #     email = False
+
+        # if (Id == True) and (name == True) and (email == True):
+        #     # return Id and name and USERS[0]['valid_payment'] and email and True
+        #     return True
+        # else:
+        #     # return Id and name and USERS[0]['valid_payment'] and email and False
+        #     return False
 
     def check_user_transition(self):
         if Charger.check_user(self):
@@ -89,42 +96,70 @@ class Charger:
         print('charging done')
 
     def done(self):
-        self.stm.terminate()
+        print('disconnected')
+        pass
 
     def charge(self):
-        max_speed = INFO['max_speed']
+        print(self.config)
+        max_charging_level = round(
+            self.config['max_charge_percentage'] *
+            self.config['capacity'] / 100
+        )
 
-        while (self.current_charge < MAX_CHARGE_PERCENTAGE):
-            self.current_charge += max_speed
-            print(f"You are given {max_speed} electricity%")
-
-        if self.current_charge >= MAX_CHARGE_PERCENTAGE:
-            print("You are currently at your preferred charge level.")
+        if self.config['current_charge'] >= max_charging_level:
             self.stm.send('done_charging')
+            return
+
+        if max_charging_level - self.config['current_charge'] < self.config['charging_speed']:
+            self.config['charging_speed'] = max_charging_level - \
+                self.config['current_charge']
+            print(f"Charging speed adjusted to {
+                  self.config['charging_speed']}")
+            return
+
+    # def charge(self):
+    #     max_speed = self.config['max_charging_speed']
+
+    #     while (self.config['current_charge'] < self.config['max_charge_percentage']):
+    #         self.config['current_charge'] += max_speed
+    #         print(f"You are given {max_speed} electricity%")
+
+    #     if self.config['current_charge'] >= MAX_CHARGE_PERCENTAGE:
+    #         print("You are currently at your preferred charge level.")
+    #         self.stm.send('done_charging')
 
     def build_message(self) -> dict:
         if self.stm.state == 'charging':
-            return {'status': 'charging', 'charging_speed': self.config['CHARGING_SPEED']}
+            return {
+                'status': 'charging',
+                'charging_speed': self.config['charging_speed']
+            }
 
         else:
-            return {'status': 'idle'}
+            return {'status': self.stm.state}
 
     def receive_message(self, message: dict):
-        if INFO['status'] == 'connected':
-            self.max_speed = message.get('max_speed', 1)
-            # ...
+        if message['status'] == 'connect':
+            self.set_config({
+                'charging_speed': min(
+                    self.config['selected_charging_speed'],
+                    message.get('max_charging_speed', 0)
+                ),
+                'id': message.get('id', 0),
+                'current_charge': message.get('current_charge', 0),
+                'capacity': message.get('capacity', 0),
+            })
             self.stm.send('connect')
 
         if message['status'] == 'charging':
-            current_charge = message.get('current_charge', 0)
+            self.set_config({
+                'current_charge': message.get('current_charge', 0),
+                'capacity': message.get('capacity', 0)
+            })
             self.stm.send('still_charging')
-        # kan ha to tilstander, connect og charging
 
 
-charger = Charger({
-    'charging_speed': CHARGING_SPEED,
-    'max_charge_percentage': MAX_CHARGE_PERCENTAGE,
-})
+charger = Charger(CONFIG)
 
 
 # Transitions
@@ -217,12 +252,12 @@ def config():
 
 
 def start_flask():
-    app.run(port=5001, debug=True, host='0.0.0.0')
+    app.run(port=5001, debug=True)
 
 
 def server_socket_setup(port=65439):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('0.0.0.0', port))
+    server.bind(('127.0.0.1', port))
     server.listen(1)
     print(f"Socket server listening on port {port}")
     return server
@@ -265,6 +300,7 @@ def handle_client_connection(client_socket):
     finally:
         client_socket.close()
         print("Connection closed.")
+        charger.stm.send('disconnect')
 
 
 def run_socket_server():
