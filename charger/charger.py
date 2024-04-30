@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify
 from stmpy import Machine, Driver
-import random
 import threading
-import re
 import time
 from config import *
 import json
@@ -23,11 +21,11 @@ class Charger:
 
         possible events:
             connect: idle -> validating
-            ok: validating -> charging
-            error: validating -> idle
-            done_charging: charging -> done_charging
+            valid_user: validating -> charging
+            invalid_user: validating -> idle
+            done_charging: charging -> disconnected
             still_charging: charging -> charging
-            disconnect: done_charging -> idle
+            disconnect: disconnected -> idle
 
         incoming messages:
             connect
