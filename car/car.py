@@ -1,107 +1,83 @@
-from config import *
 import socket
-from sense_hat import SenseHat
-import time
+import json
 from config import *
 
-server_ip = CHARGER_IP
-server_port = CHARGER_PORT
 
-first_conect = True
-sense = SenseHat()
+class Car():
+    state = "idle"  # possible values: idle, charging
 
-charge_level = 0
-charging = True
+    def __init__(self, initial_charge=INITIAL_CHARGE):
+        self.current_charge = initial_charge
 
-green = (0,255,0)
-red = (255,0,0)
-pink = (255,0,255)
-blue = (0, 191, 255)
+    def build_connect_message(self) -> dict:
+        return {
+            "status": "connect",
+            "id": '1',
+            "max_charging_speed": MAX_CHARGING_SPEED,
+            "current_charge": self.current_charge,
+            "capacity": MAX_CHARGE_CAPACITY,
+        }
 
-def set_charge_true():
-    charging = True
+    def build_charging_message(self) -> dict:
+        return {
+            "status": "charging",
+            "current_charge": self.current_charge,
+            "capacity": MAX_CHARGE_CAPACITY
+        }
 
-def set_charge_false():
-    charging = False
+    def update_charge(self, charging_speed):
+        self.current_charge += charging_speed
+        if self.current_charge >= MAX_CHARGE_CAPACITY:
+            self.current_charge = MAX_CHARGE_CAPACITY
+            self.state = "idle"
+        else:
+            self.state = "charging"
 
-def set_charge_level(input_charge):
-    global charge_level
-    if input_charge > 100 or input_charge < 0:
-        return
-    else:    
-        charge_level = input_charge
-
-def increase_charge(threshold, speed):
-    global charge_level
-    if charge_level < 100 and charge_level < threshold:
-        charge_level += speed
-
-def decrease_charge():
-    global charge_level
-    if charge_level > 0:
-        charge_level -= 1
-
-# Function for turning led rows on, depending on the percentage of batery
-def turn_on_led_rows(number_rows):
-    
-    number_rows = max(1, min(number_rows, 8))
-    
-    for i in range(number_rows):
-        for j in range(8):
-            sense.set_pixel(j, i, 255, 255, 255)
+    def receive_message(self, message: dict):
+        if not message:
+            return
+        if message["status"] == "charging":
+            self.update_charge(message.get("charging_speed", 0))
+            print(f"Current charge: {self.current_charge}")
+        elif message["status"] == "disconnect":
+            self.state = "idle"
 
 
-def main():
-    if first_conect:
-        
-        first_conect = False
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((server_ip, server_port))
-        client_socket.sendall(b'Send Password') #First the client send the password to conect to the charager
-        
-        return 
-        
-    else:
-        
-        client_socket.sendall(b'Able to charge')
-        charging = True
-
-        while True:
-            if charging == True:
-                sense.show_message(str(charge_level)+"%", back_colour=green, text_colour=pink)
-                time.sleep(1)
-
-                number_rows = round(charge_level/100 * 8)
-                turn_on_led_rows(number_rows)
-                increase_charge()
-                return
-
-            else:
-                sense.show_message(str(charge_level)+"%", back_colour=red, text_colour=blue)
-                time.sleep(3)
-                decrease_charge()
+car = Car()
 
 
-    
+def send_message(sock, message):
+    try:
+        serialized_message = json.dumps(message)
+        sock.sendall(serialized_message.encode())
+    except json.JSONDecodeError:
+        print("Failed to serialize message")
 
-'''
-def main():
-    charger_address = "10.0.1.1" #local ip of charger
-    host = 'charger.local'
-    port = 22
-    
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    client_socket.connect((host, port))
-    client_socket.sendall(b'Send Password') #First the client send the password to conect to the charager
-    
-    # Send data to the charger
-    client_socket.sendall(b'Request to charge')
-    
-    client_socket.close()
-    pass
-'''
-    
 
-if __name__ == '__main__':
-    main()
+def start_client(server_host='127.0.0.1', server_port=65439):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.connect((server_host, server_port))
+            print("Connected to server")
+
+            send_message(sock, car.build_connect_message())
+            while True:
+                data = sock.recv(1024)
+                if not data:
+                    break
+                try:
+                    received_message = json.loads(data.decode())
+                    print("Received from server:", received_message)
+                    car.receive_message(received_message)
+
+                    send_message(
+                        sock, car.build_charging_message())
+                except json.JSONDecodeError:
+                    print("Failed to decode message")
+        except socket.error as e:
+            print(f"Socket error: {e}")
+
+
+if __name__ == "__main__":
+    # start_client(CHARGER_IP, CHARGER_PORT)
+    start_client()

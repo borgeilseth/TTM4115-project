@@ -45,6 +45,10 @@ class Charger:
 
     def set_config(self, new_config):
         self.config.update(new_config)
+        self.config['charging_speed'] = min(
+            self.config['max_charging_speed'],
+            self.config['selected_charging_speed']
+        )
 
     def check_user(self):
         """Check user"""
@@ -56,35 +60,8 @@ class Charger:
 
         return True
 
-        # if re.match(r'^\d{4}-\d{4}-\d{4}$', USERS[0]['UUID']) is not None:
-        #     Id = True
-        # else:
-        #     Id = False
-
-        # if re.match(r"^[A-Za-z]+$", USERS[0]['name']) is not None:
-        #     name = True
-        # else:
-        #     name = False
-
-        # if (
-        #     re.match(
-        #         r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", USERS[0]['email']
-        #     )
-        #     is not None
-        # ):
-        #     email = True
-        # else:
-        #     email = False
-
-        # if (Id == True) and (name == True) and (email == True):
-        #     # return Id and name and USERS[0]['valid_payment'] and email and True
-        #     return True
-        # else:
-        #     # return Id and name and USERS[0]['valid_payment'] and email and False
-        #     return False
-
     def check_user_transition(self):
-        if Charger.check_user(self):
+        if self.check_user():
             self.stm.send('valid_user')
         else:
             self.stm.send('invalid_user')
@@ -100,7 +77,6 @@ class Charger:
         pass
 
     def charge(self):
-        print(self.config)
         max_charging_level = round(
             self.config['max_charge_percentage'] *
             self.config['capacity'] / 100
@@ -117,17 +93,6 @@ class Charger:
                   self.config['charging_speed']}")
             return
 
-    # def charge(self):
-    #     max_speed = self.config['max_charging_speed']
-
-    #     while (self.config['current_charge'] < self.config['max_charge_percentage']):
-    #         self.config['current_charge'] += max_speed
-    #         print(f"You are given {max_speed} electricity%")
-
-    #     if self.config['current_charge'] >= MAX_CHARGE_PERCENTAGE:
-    #         print("You are currently at your preferred charge level.")
-    #         self.stm.send('done_charging')
-
     def build_message(self) -> dict:
         if self.stm.state == 'charging':
             return {
@@ -141,14 +106,12 @@ class Charger:
     def receive_message(self, message: dict):
         if message['status'] == 'connect':
             self.set_config({
-                'charging_speed': min(
-                    self.config['selected_charging_speed'],
-                    message.get('max_charging_speed', 0)
-                ),
                 'id': message.get('id', 0),
+                'max_charging_speed': message.get('max_charging_speed', 0),
                 'current_charge': message.get('current_charge', 0),
                 'capacity': message.get('capacity', 0),
             })
+            print(json.dumps(self.config, indent=4))
             self.stm.send('connect')
 
         if message['status'] == 'charging':
@@ -156,6 +119,7 @@ class Charger:
                 'current_charge': message.get('current_charge', 0),
                 'capacity': message.get('capacity', 0)
             })
+            print(json.dumps(self.config, indent=4))
             self.stm.send('still_charging')
 
 
@@ -218,7 +182,7 @@ t6 = {
 }
 
 machine = Machine(name='charger', transitions=[
-                  t0, t1, t2, t3, t4, t5, t6], obj=charger)
+    t0, t1, t2, t3, t4, t5, t6], obj=charger)
 charger.stm = machine
 
 driver = Driver()
@@ -236,8 +200,9 @@ parameters accordingly.
 """
 
 
-@app.route('/', methods=['GET', 'POST'])
+@ app.route('/', methods=['GET', 'POST'])
 def config():
+    global charger
     if request.method == 'POST':
         # Update configuration parameters
         data = request.get_json()
@@ -252,7 +217,7 @@ def config():
 
 
 def start_flask():
-    app.run(port=5001, debug=True)
+    app.run(port=5001, debug=False, host='0.0.0.0')
 
 
 def server_socket_setup(port=65439):
@@ -264,11 +229,13 @@ def server_socket_setup(port=65439):
 
 
 def handle_client_connection(client_socket):
+    global charger
     try:
         initial_data = client_socket.recv(1024)
         if initial_data:
-            charger.receive_message(json.loads(initial_data.decode()))
-            print("Received initial message from client:", initial_data.decode())
+            data = json.loads(initial_data.decode())
+            charger.receive_message(data)
+            print("Received initial message from client:\n", data)
         else:
             print("No initial data received; connection will be closed.")
             return
