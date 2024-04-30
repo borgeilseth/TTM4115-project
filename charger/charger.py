@@ -19,13 +19,14 @@ class Charger:
             idle
             validating
             charging
-            done_charging
+            disconnected
 
         possible events:
             connect: idle -> validating
             ok: validating -> charging
             error: validating -> idle
             done_charging: charging -> done_charging
+            still_charging: charging -> charging
             disconnect: done_charging -> idle
 
         incoming messages:
@@ -72,7 +73,12 @@ class Charger:
         else:
             email = False
 
-        return Id and name and USERS[0]['valid_payment'] and email
+        if (Id == True) and (name == True) and (email == True):
+            #return Id and name and USERS[0]['valid_payment'] and email and True
+            return True
+        else:
+            #return Id and name and USERS[0]['valid_payment'] and email and False
+            return False
 
     def check_user_transition(self):
         if Charger.check_user(self):
@@ -80,17 +86,11 @@ class Charger:
         else:
             self.stm.send('invalid_user')
 
-    def check_settings(self):
-        print('checking settings')
-
     def invalid_error(self):
         print('not valid user')
 
     def stop_charging(self):
         print('charging done')
-
-    def on_idle(self):
-        print('Idling')
 
     def done(self):
         self.stm.terminate()
@@ -98,22 +98,23 @@ class Charger:
     def charge(self):
         max_speed = INFO['max_speed']
 
-        if self.current_charge < MAX_CHARGE_PERCENTAGE:
+        while (self.current_charge < MAX_CHARGE_PERCENTAGE):
             self.current_charge += max_speed
-            print(f"You are now at {self.current_charge}%")
+            print(f"You are given {max_speed} electricity%")
 
         if self.current_charge >= MAX_CHARGE_PERCENTAGE:
             print("You are currently at your preferred charge level.")
+            self.stm.send('done_charging')
 
     def build_message(self) -> dict:
         if self.stm.state == 'charging':
             return {'status': 'charging', 'charging_speed': self.config['CHARGING_SPEED']}
 
-        if self.stm.state == 'disconnect':
-            return {'status': 'disconnect'}
+        else:
+            return {'status': 'idle'}
 
     def receive_message(self, message: dict):
-        if INFO['status'] == 'connect':
+        if INFO['status'] == 'connected':
             self.max_speed = message.get('max_speed', 1)
             # ...
             self.stm.send('connect')
@@ -149,7 +150,7 @@ t1 = {
 t2 = {
     'trigger': 'invalid_user',
     'source': 'validating',
-    'target': 'disconnect',
+    'target': 'disconnected',
     'effect': 'invalid_error',
 }
 
@@ -158,7 +159,7 @@ t3 = {
     'trigger': 'valid_user',
     'source': 'validating',
     'target': 'charging',
-    'effect': 'check_settings; charge',
+    'effect': 'charge',
 }
 
 # loop transition
@@ -173,14 +174,14 @@ t4 = {
 t5 = {
     'trigger': 'done_charging',
     'source': 'charging',
-    'target': 'disconnect',
+    'target': 'disconnected',
     'effect': 'stop_charging',
 }
 
 # disconnected, back to idle
 t6 = {
-    'trigger': 'disonnect',
-    'source': 'disconnect',
+    'trigger': 'disconnect',
+    'source': 'disconnected',
     'target': 'idle',
     'effect': 'done',
 }
