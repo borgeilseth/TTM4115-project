@@ -125,8 +125,8 @@ class Charger:
 
 
 charger = Charger({
-    'CHARGING_SPEED': CHARGING_SPEED,
-    'MAX_CHARGE_PERCENTAGE': MAX_CHARGE_PERCENTAGE,
+    'charging_speed': CHARGING_SPEED,
+    'max_charge_percentage': MAX_CHARGE_PERCENTAGE,
 })
 
 
