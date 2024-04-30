@@ -11,14 +11,6 @@ import socket
 
 app = Flask(__name__)
 
-"""Global variables"""
-config_params = {
-    'max_charge_percentage': MAX_CHARGE_PERCENTAGE,
-    'charging_speed': CHARGING_SPEED,
-    'users': USERS,
-    # TODO: Add more parameters if needed
-}
-
 
 class Charger:
     """Charger class
@@ -27,13 +19,14 @@ class Charger:
             idle
             validating
             charging
-            done_charging
+            disconnected
 
         possible events:
             connect: idle -> validating
             ok: validating -> charging
             error: validating -> idle
             done_charging: charging -> done_charging
+            still_charging: charging -> charging
             disconnect: done_charging -> idle
 
         incoming messages:
@@ -45,7 +38,13 @@ class Charger:
             disconnect
     """
 
-    current_charge = 0
+    config = {}
+
+    def __init__(self, initial_config):
+        self.config = initial_config
+
+    def set_config(self, new_config):
+        self.config.update(new_config)
 
     def check_user(self):
         """Check user"""
@@ -70,7 +69,12 @@ class Charger:
         else:
             email = False
 
-        return Id and name and USERS[0]['valid_payment'] and email
+        if (Id == True) and (name == True) and (email == True):
+            #return Id and name and USERS[0]['valid_payment'] and email and True
+            return True
+        else:
+            #return Id and name and USERS[0]['valid_payment'] and email and False
+            return False
 
     def check_user_transition(self):
         if Charger.check_user(self):
@@ -78,17 +82,11 @@ class Charger:
         else:
             self.stm.send('invalid_user')
 
-    def check_settings(self):
-        print('checking settings')
-
     def invalid_error(self):
         print('not valid user')
 
     def stop_charging(self):
         print('charging done')
-
-    def on_idle(self):
-        print('Idling')
 
     def done(self):
         self.stm.terminate()
@@ -96,29 +94,23 @@ class Charger:
     def charge(self):
         max_speed = INFO['max_speed']
 
-        if self.current_charge < MAX_CHARGE_PERCENTAGE:
+        while (self.current_charge < MAX_CHARGE_PERCENTAGE):
             self.current_charge += max_speed
-            print(f"You are now at {self.current_charge}%")
+            print(f"You are given {max_speed} electricity%")
 
         if self.current_charge >= MAX_CHARGE_PERCENTAGE:
             print("You are currently at your preferred charge level.")
+            self.stm.send('done_charging')
 
     def build_message(self) -> dict:
-        global config_params
-        print(config_params)
-        return {
-            'status': self.stm.state,
-            'charging_speed': config_params.get('charging_speed', 0),
-        }
-
         if self.stm.state == 'charging':
-            return {'status': 'charging', 'charging_speed': self.charge_speed}
+            return {'status': 'charging', 'charging_speed': self.config['CHARGING_SPEED']}
 
-        if self.stm.state == 'disconnect':
-            return {'status': 'disconnect'}
+        else:
+            return {'status': 'idle'}
 
     def receive_message(self, message: dict):
-        if INFO['status'] == 'connect':
+        if INFO['status'] == 'connected':
             self.max_speed = message.get('max_speed', 1)
             # ...
             self.stm.send('connect')
@@ -127,6 +119,12 @@ class Charger:
             current_charge = message.get('current_charge', 0)
             self.stm.send('still_charging')
         # kan ha to tilstander, connect og charging
+
+
+charger = Charger({
+    'charging_speed': CHARGING_SPEED,
+    'max_charge_percentage': MAX_CHARGE_PERCENTAGE,
+})
 
 
 # Transitions
@@ -148,7 +146,7 @@ t1 = {
 t2 = {
     'trigger': 'invalid_user',
     'source': 'validating',
-    'target': 'disconnect',
+    'target': 'disconnected',
     'effect': 'invalid_error',
 }
 
@@ -157,7 +155,7 @@ t3 = {
     'trigger': 'valid_user',
     'source': 'validating',
     'target': 'charging',
-    'effect': 'check_settings; charge',
+    'effect': 'charge',
 }
 
 # loop transition
@@ -172,20 +170,17 @@ t4 = {
 t5 = {
     'trigger': 'done_charging',
     'source': 'charging',
-    'target': 'disconnect',
+    'target': 'disconnected',
     'effect': 'stop_charging',
 }
 
 # disconnected, back to idle
 t6 = {
-    'trigger': 'disonnect',
-    'source': 'disconnect',
+    'trigger': 'disconnect',
+    'source': 'disconnected',
     'target': 'idle',
     'effect': 'done',
 }
-
-# State machine for the charger.
-charger = Charger()
 
 machine = Machine(name='charger', transitions=[
                   t0, t1, t2, t3, t4, t5, t6], obj=charger)
@@ -208,19 +203,21 @@ parameters accordingly.
 
 @app.route('/', methods=['GET', 'POST'])
 def config():
-    global config_params
     if request.method == 'POST':
         # Update configuration parameters
         data = request.get_json()
-        config_params.update(data)
-        return jsonify({"message": "Configuration updated", "new_config": config_params}), 200
+        charger.set_config(data)
+        return jsonify({
+            "message": "Configuration updated",
+            "new_config": charger.config
+        }), 200
     elif request.method == 'GET':
         # Retrieve current configuration parameters
-        return jsonify(config_params), 200
+        return jsonify(charger.config), 200
 
 
 def start_flask():
-    app.run(port=5001, debug=True)
+    app.run(port=5001, debug=True, host='0.0.0.0')
 
 
 def server_socket_setup(port=65439):
@@ -235,6 +232,7 @@ def handle_client_connection(client_socket):
     try:
         initial_data = client_socket.recv(1024)
         if initial_data:
+            charger.receive_message(json.loads(initial_data.decode()))
             print("Received initial message from client:", initial_data.decode())
         else:
             print("No initial data received; connection will be closed.")
