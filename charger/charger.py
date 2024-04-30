@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify
 from stmpy import Machine, Driver
-import random
 import threading
-import re
 import time
 from config import *
 import json
