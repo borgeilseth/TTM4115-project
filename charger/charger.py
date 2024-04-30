@@ -11,14 +11,6 @@ import socket
 
 app = Flask(__name__)
 
-"""Global variables"""
-config_params = {
-    'max_charge_percentage': MAX_CHARGE_PERCENTAGE,
-    'charging_speed': CHARGING_SPEED,
-    'users': USERS,
-    # TODO: Add more parameters if needed
-}
-
 
 class Charger:
     """Charger class
@@ -45,7 +37,17 @@ class Charger:
             disconnect
     """
 
-    current_charge = 0
+    config = {}
+
+    def __init__(self, initial_config):
+        self.config = initial_config
+
+    # Config setter and getter
+    def set_config(self, new_config):
+        self.config.update(new_config)
+
+    def get_config(self):
+        return self.config
 
     def check_user(self):
         """Check user"""
@@ -104,15 +106,8 @@ class Charger:
             print("You are currently at your preferred charge level.")
 
     def build_message(self) -> dict:
-        global config_params
-        print(config_params)
-        return {
-            'status': self.stm.state,
-            'charging_speed': config_params.get('charging_speed', 0),
-        }
-
         if self.stm.state == 'charging':
-            return {'status': 'charging', 'charging_speed': self.charge_speed}
+            return {'status': 'charging', 'charging_speed': self.config['CHARGING_SPEED']}
 
         if self.stm.state == 'disconnect':
             return {'status': 'disconnect'}
@@ -127,6 +122,12 @@ class Charger:
             current_charge = message.get('current_charge', 0)
             self.stm.send('still_charging')
         # kan ha to tilstander, connect og charging
+
+
+charger = Charger({
+    'CHARGING_SPEED': CHARGING_SPEED,
+    'MAX_CHARGE_PERCENTAGE': MAX_CHARGE_PERCENTAGE,
+})
 
 
 # Transitions
@@ -184,9 +185,6 @@ t6 = {
     'effect': 'done',
 }
 
-# State machine for the charger.
-charger = Charger()
-
 machine = Machine(name='charger', transitions=[
                   t0, t1, t2, t3, t4, t5, t6], obj=charger)
 charger.stm = machine
@@ -208,19 +206,21 @@ parameters accordingly.
 
 @app.route('/', methods=['GET', 'POST'])
 def config():
-    global config_params
     if request.method == 'POST':
         # Update configuration parameters
         data = request.get_json()
-        config_params.update(data)
-        return jsonify({"message": "Configuration updated", "new_config": config_params}), 200
+        charger.set_config(data)
+        return jsonify({
+            "message": "Configuration updated",
+            "new_config": charger.get_config()
+        }), 200
     elif request.method == 'GET':
         # Retrieve current configuration parameters
-        return jsonify(config_params), 200
+        return jsonify(charger.get_config()), 200
 
 
 def start_flask():
-    app.run(port=5001, debug=True)
+    app.run(port=5001, debug=True, host='0.0.0.0')
 
 
 def server_socket_setup(port=65439):
@@ -235,6 +235,7 @@ def handle_client_connection(client_socket):
     try:
         initial_data = client_socket.recv(1024)
         if initial_data:
+            charger.receive_message(json.loads(initial_data.decode()))
             print("Received initial message from client:", initial_data.decode())
         else:
             print("No initial data received; connection will be closed.")

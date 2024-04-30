@@ -12,7 +12,7 @@ class Car():
     def build_connect_message(self) -> dict:
         return {
             "status": "connect",
-            # ...
+            "id": 1,
             "max_charging_speed": MAX_CHARGING_SPEED,
             "current_charge": self.current_charge,
         }
