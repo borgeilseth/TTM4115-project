@@ -55,9 +55,12 @@ class Car():
 
     def refresh_sense_led(self):
         global sense
+        color = None
         # Change the sense led color according to the charge and state
         if self.state == "idle":
-            sense.clear(red)
+            color = red
+        elif self.state == "charging":
+            color = green
 
         else:
             sense.clear()
@@ -65,13 +68,13 @@ class Car():
             number_of_pixels_on = math.floor(percentage * 64)
 
             for y in range(8):
-    
-                leds_in_row = min(number_of_pixels_on, 8) 
-                number_of_pixels_on -= leds_in_row 
-                
+
+                leds_in_row = min(number_of_pixels_on, 8)
+                number_of_pixels_on -= leds_in_row
+
                 for x in range(leds_in_row):
-                    sense.set_pixel(x, y, 0, 255, 0)  
-                
+                    sense.set_pixel(x, y, color)
+
                 if number_of_pixels_on <= 0:
                     break
 
@@ -94,8 +97,6 @@ class Car():
         elif message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
             self.set_state("charging")
-            print(f"Current charge: {self.current_charge}, "
-                  f"State: {self.state}")
             return True
         elif message["status"] == "disconnect":
             threading.Thread(target=dissalow_timeouts).start()
@@ -124,14 +125,12 @@ def send_message(sock, message):
 def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
     global dissalowed
     while True:
-        print(f"Current charge: {car.current_charge}, State: {car.state}")
 
         if not dissalowed:
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(2)
                     sock.connect((server_host, server_port))
-                    # print("Charging")
 
                     send_message(sock, car.build_connect_message())
                     while True:
@@ -151,10 +150,16 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
                 pass
 
         car.set_state("idle")
+
+
+def update_car():
+    print(f"Current charge: {car.current_charge}, State: {car.state}")
+    global car
+    if not car.state == "idle":
         car.update_charge(DISCHARGE_RATE)
-        time.sleep(1)
+    time.sleep(1)
 
 
 if __name__ == "__main__":
-    # start_client(CHARGER_IP, CHARGER_PORT)
+    threading.Thread(target=update_car).start()
     start_client()

@@ -1,10 +1,32 @@
 import socket
 import json
+import time
+import math
 from config import *
+import threading
+from sense_hat import SenseHat
+
+
+dissalowed = False
+
+sense = SenseHat()
+green = (0, 255, 0)
+red = (255, 0, 0)
+pink = (255, 0, 255)
+blue = (0, 191, 255)
 
 
 class Car():
-    state = "idle"  # possible values: idle, charging
+    """Car class for handling car logic and state
+
+    Can have two states:
+        idle
+            When the car is not connected to the charger
+        charging
+            When the car is connected to the charger
+    """
+
+    state = "idle"
 
     def __init__(self, initial_charge=INITIAL_CHARGE):
         self.current_charge = initial_charge
@@ -25,25 +47,75 @@ class Car():
             "capacity": MAX_CHARGE_CAPACITY
         }
 
-    def update_charge(self, charging_speed):
-        self.current_charge += charging_speed
+    def turn_on_led_rows(number_rows):
+        number_rows = max(1, min(number_rows, 8))
+        for i in range(number_rows):
+            for j in range(8):
+                sense.set_pixel(j, i, 0, 255, 0)
+
+    def refresh_sense_led(self):
+        global sense
+        color = None
+        # Change the sense led color according to the charge and state
+        if self.state == "idle":
+            color = red
+        elif self.state == "charging":
+            color = green
+
+        else:
+            sense.clear()
+            percentage = self.current_charge/MAX_CHARGE_CAPACITY
+            number_of_pixels_on = math.floor(percentage * 64)
+
+            for y in range(8):
+                # Calculate LEDs to light up in this row
+                # Cap at 8 LEDs per row
+                leds_in_row = min(number_of_pixels_on, 8)
+                number_of_pixels_on -= leds_in_row  # Decrease the remaining LEDs
+
+                # Turn on LEDs in this row
+                for x in range(leds_in_row):
+                    # Green color for LEDs in this row
+                    sense.set_pixel(x, y, color)
+
+                # Exit loop if no remaining LEDs
+                if number_of_pixels_on <= 0:
+                    break
+
+    def update_charge(self, change):
+        self.current_charge += change
         if self.current_charge >= MAX_CHARGE_CAPACITY:
             self.current_charge = MAX_CHARGE_CAPACITY
-            self.state = "idle"
-        else:
-            self.state = "charging"
+        elif self.current_charge < 0:
+            self.current_charge = 0
+        self.refresh_sense_led()
+
+    def set_state(self, state):
+        self.state = state
+        self.refresh_sense_led()
 
     def receive_message(self, message: dict):
+        # print(f"Received message: {message}")
         if not message:
-            return
-        if message["status"] == "charging":
+            return True
+        elif message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
-            print(f"Current charge: {self.current_charge}")
+            self.set_state("charging")
+            return True
         elif message["status"] == "disconnect":
-            self.state = "idle"
+            threading.Thread(target=dissalow_timeouts).start()
+            return False
+        return True
 
 
 car = Car()
+
+
+def dissalow_timeouts():
+    global dissalowed
+    dissalowed = True
+    time.sleep(10)
+    dissalowed = False
 
 
 def send_message(sock, message):
@@ -54,30 +126,44 @@ def send_message(sock, message):
         print("Failed to serialize message")
 
 
-def start_client(server_host='127.0.0.1', server_port=65439):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        try:
-            sock.connect((server_host, server_port))
-            print("Connected to server")
+def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
+    global dissalowed
+    while True:
 
-            send_message(sock, car.build_connect_message())
-            while True:
-                data = sock.recv(1024)
-                if not data:
-                    break
-                try:
-                    received_message = json.loads(data.decode())
-                    print("Received from server:", received_message)
-                    car.receive_message(received_message)
+        if not dissalowed:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(2)
+                    sock.connect((server_host, server_port))
 
-                    send_message(
-                        sock, car.build_charging_message())
-                except json.JSONDecodeError:
-                    print("Failed to decode message")
-        except socket.error as e:
-            print(f"Socket error: {e}")
+                    send_message(sock, car.build_connect_message())
+                    while True:
+                        data = sock.recv(1024)
+                        if not data:
+                            break
+                        try:
+                            received_message = json.loads(data.decode())
+                            if not car.receive_message(received_message):
+                                break
+
+                            send_message(
+                                sock, car.build_charging_message())
+                        except json.JSONDecodeError:
+                            print("Failed to decode message")
+            except socket.error:
+                pass
+
+        car.set_state("idle")
+
+
+def update_car():
+    print(f"Current charge: {car.current_charge}, State: {car.state}")
+    global car
+    if not car.state == "idle":
+        car.update_charge(DISCHARGE_RATE)
+    time.sleep(1)
 
 
 if __name__ == "__main__":
-    # start_client(CHARGER_IP, CHARGER_PORT)
+    threading.Thread(target=update_car).start()
     start_client()
