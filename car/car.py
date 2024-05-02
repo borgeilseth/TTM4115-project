@@ -13,7 +13,7 @@ class Car():
         return {
             "status": "connect",
             "id": '1',
-            "max_charging_speed": MAX_CHARGING_SPEED,
+            "max_charging_speed": MAX_CHARGING_RATE,
             "current_charge": self.current_charge,
             "capacity": MAX_CHARGE_CAPACITY,
         }

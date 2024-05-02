@@ -66,8 +66,8 @@ class Car():
         elif message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
             self.set_state("charging")
-            print(f"Current charge: {
-                  self.current_charge}, State: {self.state}")
+            print(f"Current charge: {self.current_charge}, "
+                  f"State: {self.state}")
             return True
         elif message["status"] == "disconnect":
             threading.Thread(target=dissalow_timeouts).start()
