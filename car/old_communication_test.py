@@ -155,10 +155,11 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
 
 def update_car():
     global car
-    print(f"Current charge: {car.current_charge}, State: {car.state}")
-    if not car.state == "idle":
-        car.update_charge(DISCHARGE_RATE)
-    time.sleep(1)
+    while True:
+        print(f"Current charge: {car.current_charge}, State: {car.state}")
+        if car.state == "idle":
+            car.update_charge(DISCHARGE_RATE)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
