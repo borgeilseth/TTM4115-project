@@ -91,7 +91,7 @@ class Car():
 
     def receive_message(self, message: dict):
         global dissalowed
-        print(f"Received message: {message}, dissalowed: {dissalowed}")
+        # print(f"Received message: {message}, dissalowed: {dissalowed}")
         if not message:
             return True
         elif message["status"] == "charging":
