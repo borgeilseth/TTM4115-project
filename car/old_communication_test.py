@@ -93,7 +93,7 @@ def send_message(sock, message):
         print("Failed to serialize message")
 
 
-def start_client(server_host='127.0.0.1', server_port=65439):
+def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
     global dissalowed
     while True:
         print(f"Current charge: {car.current_charge}, State: {car.state}")
