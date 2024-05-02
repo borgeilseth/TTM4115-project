@@ -253,6 +253,8 @@ def server_socket_setup(ip=CHARGER_IP, port=CHARGER_PORT):
 def handle_client_connection(client_socket):
     global charger
     try:
+        client_socket.settimeout(2)
+
         initial_data = client_socket.recv(1024)
         if initial_data:
             data = json.loads(initial_data.decode())

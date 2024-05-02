@@ -122,7 +122,7 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
         if not dissalowed:
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-
+                    sock.settimeout(2)
                     sock.connect((server_host, server_port))
                     # print("Charging")
 
