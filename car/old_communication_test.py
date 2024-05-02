@@ -1,19 +1,25 @@
 import socket
 import json
 import time
+import math
 from config import *
 import threading
-# from sense_hat import SenseHat
+from sense_hat import SenseHat
 
-# sense = SenseHat()
 
 dissalowed = False
+
+sense = SenseHat()
+green = (0, 255, 0)
+red = (255, 0, 0)
+pink = (255, 0, 255)
+blue = (0, 191, 255)
 
 
 class Car():
     """Car class for handling car logic and state
 
-    Can have three states:
+    Can have two states:
         idle
             When the car is not connected to the charger
         charging
@@ -41,11 +47,26 @@ class Car():
             "capacity": MAX_CHARGE_CAPACITY
         }
 
+    def turn_on_led_rows(number_rows):
+        number_rows = max(1, min(number_rows, 8))
+        for i in range(number_rows):
+            for j in range(8):
+                sense.set_pixel(j, i, 0, 255, 0)
+
     def refresh_sense_led(self):
         global sense
         # Change the sense led color according to the charge and state
+        if self.state == "idle":
+            sense.clear(red)
 
-        pass
+        else:
+            percentage = self.current_charge/MAX_CHARGE_CAPACITY
+            number_of_pixels_on = math.floor(percentage * 64)
+
+            for i in number_of_pixels_on:
+                x = i % 8
+                y = i % 8
+                sense.set_pixel(x, y, 0, 255, 0)
 
     def update_charge(self, change):
         self.current_charge += change
@@ -60,7 +81,7 @@ class Car():
         self.refresh_sense_led()
 
     def receive_message(self, message: dict):
-        print(f"Received message: {message}")
+        # print(f"Received message: {message}")
         if not message:
             return True
         elif message["status"] == "charging":
