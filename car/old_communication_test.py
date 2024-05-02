@@ -65,15 +65,13 @@ class Car():
             number_of_pixels_on = math.floor(percentage * 64)
 
             for y in range(8):
-            # Calculate LEDs to light up in this row
-                leds_in_row = min(number_of_pixels_on, 8)  # Cap at 8 LEDs per row
-                number_of_pixels_on -= leds_in_row  # Decrease the remaining LEDs
+    
+                leds_in_row = min(number_of_pixels_on, 8) 
+                number_of_pixels_on -= leds_in_row 
                 
-                # Turn on LEDs in this row
                 for x in range(leds_in_row):
-                    sense.set_pixel(x, y, 0, 255, 0)  # Green color for LEDs in this row
+                    sense.set_pixel(x, y, 0, 255, 0)  
                 
-                # Exit loop if no remaining LEDs
                 if number_of_pixels_on <= 0:
                     break
 
