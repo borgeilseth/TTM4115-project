@@ -1,73 +1,59 @@
-from config import *
-from ..car.car import set_charge_true, set_charge_false, charge_level, increase_charge
-import charger
 
-price_history = []
-user_database = {} #database with the users and their passwords
-get_user_preference = {} # Assuming get_user_preference() is a function that retrieves the user's preference
-price_now = 150 #øre per kWh
-grid_level = 50 # % of the grid's capacity used
+import requests
+import json
 
-def add_user(username, password, charge_speed, max_price, charge_limit, mail, car, payment_info):
-    user_database[username] = {'password': password, 'charge_speed': charge_speed, 'max_price': max_price, 'charge_limit': charge_limit, 'mail' : mail, 'type_of_car' : car, 'payment_info' : payment_info}
+# grid_level = 50 # % of the grid's capacity used
+API_ENDPOINT = "http://127.0.0.1:5001"
 
-def remove_user(username):
-    del user_database[username]
 
-def authenticate_client(username, password):
-    if username in user_database and user_database[username] == password:
-        return True
-    else:
-        return False
+# sending post request and saving response as response object
+def post_data(data, URL = API_ENDPOINT) -> dict:
+    r = requests.post(URL, json=data)
+    return r.text
 
-def server_feature_1(): #feature 1
-    print("Accessing feature 1...")
-
-def server_feature_2(): #feature 2
-    print("Accessing feature 2...")
-
-def change_charge_speed(user, new_speed):
-    user['charge_speed'] = new_speed
-
-def change_max_price(user, new_price):
-    user['max_price'] = new_price
-
-def change_charge_limit(user, new_limit):
-    user['charge_limit'] = new_limit
-
-def start_charging(user):
-    if user.get('max_price') < price_now:
-        print("Charging not started. Price too high.")
-        set_charge_false()
-    if user.get('charge_limit') < charge_level:
-        print("Charging not started. Charge limit too low.")
-        set_charge_false()
-    if grid_level > 90:
-        print("Charging not started. Grid level too high.")
-        set_charge_false()
-    else:
-        set_charge_true()
-        increase_charge(user.get('charge_limit'), user.get('charge_speed'))  
+def get_data(URL = API_ENDPOINT) -> dict:
+    r = requests.get(URL)
+    return r.json()
 
 
 def main():
-    username = input("Enter username: ")
-    password = input("Enter password: ")
-    add_user(username, password)
-
-    if authenticate_client(username, password):
-        print("Access granted.")
-        server_feature_1()
-        server_feature_2()
-        max_price = 100 # This is just an example
-        try:
-            charger.start_charging(max_price) # Pass max_price to the function in charger.py
-        except Exception as e:
-            print(f"An error occurred while starting charging: {e}")
-    else:
-        print("Access denied.")
-
+    return
 
 if __name__ == '__main__':
-    main() 
-    charger.feature_from_charger() # Call a function from charger.py
+    database = get_data()
+    svar = input("Do you want to print the user database? (y/n)")
+    if svar == 'y':
+        print(database)
+
+    oppdatere = input("Do you want to update the user database? (y/n)")
+    if oppdatere == 'y':
+        allow_charging = input("Do you want to allow charging? (y/n)")
+        username = input("Enter car to allow charging: ")
+        max_charge_percentage = input("Enter max charge percentage: ")
+        max_charge_percentage = max_charge_percentage if max_charge_percentage else None
+        charging_speed = input("Enter charging speed: ")
+        charging_speed = int(charging_speed) if charging_speed else None
+
+        data = {}
+        if username:
+            old_data_cars = database['allowed_cars']
+            old_data_cars.append(username)
+            data['allowed_cars'] = old_data_cars
+            list_of_allowed_cars = database['allowed_cars']
+            if username not in list_of_allowed_cars:
+                list_of_allowed_cars.append(username)
+                index = list_of_allowed_cars.index(username)
+        if allow_charging=='y':
+            data['allow_charging'] = 'True'
+        if allow_charging=='n':
+            data['allow_charging'] = 'False'
+        if max_charge_percentage is not None:
+            data['max_charge_percentage'] = max_charge_percentage
+        if charging_speed is not None:
+            data['selected_charging_speed'] = charging_speed
+
+        response = post_data(data)
+        print(response)
+    
+
+    
