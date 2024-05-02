@@ -36,16 +36,15 @@ class Charger:
             disconnect
     """
 
-    config = {}
-
     def __init__(self, initial_config):
         self.config = initial_config
+        self.set_config(initial_config)
 
     def set_config(self, new_config):
         self.config.update(new_config)
         self.config['charging_speed'] = min(
             self.config.get('max_charging_speed', 0),
-            self.config['selected_charging_speed']
+            self.config.get('selected_charging_speed', 0)
         )
 
     def check_user(self):
@@ -65,14 +64,19 @@ class Charger:
             self.stm.send('invalid_user')
 
     def invalid_error(self):
-        print('not valid user')
+        pass
 
     def stop_charging(self):
-        print('charging done')
+        pass
 
     def done(self):
-        print('disconnected')
-        pass
+        # Remove the keys from the config
+        self.config.pop('id', None)
+        self.config.pop('max_charging_speed', None)
+        self.config.pop('current_charge', None)
+        self.config.pop('capacity', None)
+        self.config['charging_speed'] = self.config.get(
+            'selected_charging_speed', 0)
 
     def charge(self):
         max_charging_level = round(
@@ -97,8 +101,10 @@ class Charger:
                 'charging_speed': self.config['charging_speed']
             }
 
-        else:
-            return {'status': self.stm.state}
+        elif self.stm.state == 'disconnected':
+            return {
+                'status': 'disconnect'
+            }
 
     def receive_message(self, message: dict):
         if message['status'] == 'connect':
@@ -108,7 +114,6 @@ class Charger:
                 'current_charge': message.get('current_charge', 0),
                 'capacity': message.get('capacity', 0),
             })
-            print(json.dumps(self.config, indent=4))
             self.stm.send('connect')
 
         if message['status'] == 'charging':
@@ -116,11 +121,7 @@ class Charger:
                 'current_charge': message.get('current_charge', 0),
                 'capacity': message.get('capacity', 0)
             })
-            print(json.dumps(self.config, indent=4))
             self.stm.send('still_charging')
-
-
-charger = Charger(CONFIG)
 
 
 # Transitions
@@ -178,8 +179,17 @@ t6 = {
     'effect': 'done',
 }
 
+t7 = {
+    'trigger': 'disconnect',
+    'source': 'charging',
+    'target': 'idle',
+    'effect': 'done',
+}
+
+charger = Charger(CONFIG)
+
 machine = Machine(name='charger', transitions=[
-    t0, t1, t2, t3, t4, t5, t6], obj=charger)
+    t0, t1, t2, t3, t4, t5, t6, t7], obj=charger)
 charger.stm = machine
 
 driver = Driver()
@@ -214,7 +224,7 @@ def config():
 
 
 def start_flask():
-    app.run(port=5001, debug=False, host='0.0.0.0')
+    app.run(port=5001, debug=False)
 
 
 def server_socket_setup(port=65439):
@@ -241,6 +251,8 @@ def handle_client_connection(client_socket):
             while True:
                 try:
                     message = charger.build_message()
+                    if not message:
+                        continue
                     serialized_message = json.dumps(message)
                     client_socket.sendall(serialized_message.encode())
                     time.sleep(1)
