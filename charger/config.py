@@ -4,7 +4,7 @@ CHARGER_PORT = 12345
 
 CONFIG = {
     'selected_charging_speed': 4,
-    'max_charge_percentage': 80,
+    'max_charge_percentage': 100,
 
     'allow_charging': True,
     'allowed_cars': ['1'],
