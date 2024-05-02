@@ -289,6 +289,8 @@ def handle_client_connection(client_socket):
             recieved_message = json.loads(response.decode())
             print("Received from client:", recieved_message)
             charger.receive_message(recieved_message)
+    except:
+        pass
 
     finally:
         client_socket.close()
