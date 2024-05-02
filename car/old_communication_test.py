@@ -91,6 +91,7 @@ class Car():
         self.refresh_sense_led()
 
     def receive_message(self, message: dict):
+        global dissalowed
         # print(f"Received message: {message}")
         if not message:
             return True
@@ -99,19 +100,12 @@ class Car():
             self.set_state("charging")
             return True
         elif message["status"] == "disconnect":
-            threading.Thread(target=dissalow_timeouts).start()
+            dissalowed = True
             return False
         return True
 
 
 car = Car()
-
-
-def dissalow_timeouts():
-    global dissalowed
-    dissalowed = True
-    time.sleep(10)
-    dissalowed = False
 
 
 def send_message(sock, message):
@@ -150,7 +144,8 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
             except socket.error:
                 pass
 
-        car.set_state("idle")
+        time.sleep(10)
+        dissalowed = False
 
 
 def update_car():
