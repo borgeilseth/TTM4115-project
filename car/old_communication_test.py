@@ -9,6 +9,8 @@ from sense_hat import SenseHat
 
 dissalowed = False
 
+car = None
+
 sense = SenseHat()
 green = (0, 255, 0)
 red = (255, 0, 0)
@@ -121,6 +123,7 @@ def send_message(sock, message):
 
 
 def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
+    global car
     global dissalowed
     while True:
 
@@ -151,8 +154,8 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
 
 
 def update_car():
-    print(f"Current charge: {car.current_charge}, State: {car.state}")
     global car
+    print(f"Current charge: {car.current_charge}, State: {car.state}")
     if not car.state == "idle":
         car.update_charge(DISCHARGE_RATE)
     time.sleep(1)
