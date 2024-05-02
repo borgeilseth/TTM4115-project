@@ -55,28 +55,26 @@ class Car():
 
     def refresh_sense_led(self):
         global sense
-        color = None
         # Change the sense led color according to the charge and state
         if self.state == "idle":
             color = red
         elif self.state == "charging":
             color = green
 
-        else:
-            sense.clear()
-            percentage = self.current_charge/MAX_CHARGE_CAPACITY
-            number_of_pixels_on = math.floor(percentage * 64)
+        sense.clear()
+        percentage = self.current_charge/MAX_CHARGE_CAPACITY
+        number_of_pixels_on = math.floor(percentage * 64)
 
-            for y in range(8):
+        for y in range(8):
 
-                leds_in_row = min(number_of_pixels_on, 8)
-                number_of_pixels_on -= leds_in_row
+            leds_in_row = min(number_of_pixels_on, 8)
+            number_of_pixels_on -= leds_in_row
 
-                for x in range(leds_in_row):
-                    sense.set_pixel(x, y, color)
+            for x in range(leds_in_row):
+                sense.set_pixel(x, y, color)
 
-                if number_of_pixels_on <= 0:
-                    break
+            if number_of_pixels_on <= 0:
+                break
 
     def update_charge(self, change):
         self.current_charge += change
