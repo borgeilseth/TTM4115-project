@@ -239,12 +239,12 @@ def config():
 
 
 def start_flask():
-    app.run(port=5001, debug=False)
+    app.run(port=5001, debug=False, host='0.0.0.0')
 
 
-def server_socket_setup(port=65439):
+def server_socket_setup(ip=CHARGER_IP, port=CHARGER_PORT):
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('127.0.0.1', port))
+    server.bind((ip, port))
     server.listen(1)
     print(f"Socket server listening on port {port}")
     return server
