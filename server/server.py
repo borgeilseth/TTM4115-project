@@ -47,52 +47,35 @@ def start_charging(user):
         print("Charging not started. Charge limit too low.")
         #car.set_charge_false()
         return False
-    if grid_level > 90:
-        print("Charging not started. Grid level too high.")
-        #car.set_charge_false()
-        return False
     else:
         #car.set_charge_true()
         #car.increase_charge(user.get('charge_limit'), user.get('charge_speed'))  
         return True
 
 def main():
-    input("Do you want to add a user? (y/n)")
-    if input == 'y':
-        username = input("Enter username: ")
-        password = input("Enter password: ")
-        max_charge_percentage = input("Enter max charge percentage: ")
-        charging_speed = input("Enter charging speed: ")
-        add_user(username, password, max_charge_percentage, charging_speed)
-
-        if authenticate_client(username, password):
-            print("Access granted.")
-        else:
-            print("Access denied.")
-    input("Do you want to see the user database? (y/n)")
-    if input == 'y':
-        get_data() # Call a function from get.py
-    input("Do you want to update the user database? (y/n)")
-    if input == 'y':
-        username2 = input("Enter username: ")
-        password2 = input("Enter password: ")
-        max_charge_percentage2 = input("Enter max charge percentage: ")
-        charging_speed2 = input("Enter charging speed: ")
-        post_data({'username': username, 'password': password, 'max_charging_percentage': max_charge_percentage, 'selected_charging_speed': charging_speed })
+    return
 
 
 
 if __name__ == '__main__':
-    d = get_data()
-    print(d)
+    oppdatere = input("Do you want to update the user database? (y/n)")
+    database = get_data()
+    if oppdatere == 'y':
+        username = input("Enter username: ")
+        max_charge_percentage = input("Enter max charge percentage: ")
+        max_charge_percentage = max_charge_percentage if max_charge_percentage else None
+        charging_speed = input("Enter charging speed: ")
+        charging_speed = charging_speed if charging_speed else None
 
-    d = post_data({
-        "allowed_cars": [1, 2, 3],
-    })
-    print(d)
+        data = {'username': username}
+        if max_charge_percentage is not None:
+            data['max_charging_percentage'] = max_charge_percentage
+        if charging_speed is not None:
+            data['charging_speed'] = charging_speed
+
+        response = post_data(data)
+        print(response)
     
     # main() 
     #charger.feature_from_charger() # Call a function from charger.py
 
-
-{'Max_charge_percentage': 80, 'Charging_speed': 1, 'Allow_charging': True, 'Allowed_cars': [1]}
