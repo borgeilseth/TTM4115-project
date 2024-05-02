@@ -3,21 +3,23 @@ import requests
 import json
 
 # grid_level = 50 # % of the grid's capacity used
-API_ENDPOINT = "http://127.0.0.1:5001"
+API_ENDPOINT = "http://192.168.227.109:5001"
 
 
 # sending post request and saving response as response object
-def post_data(data, URL = API_ENDPOINT) -> dict:
+def post_data(data, URL=API_ENDPOINT) -> dict:
     r = requests.post(URL, json=data)
     return r.text
 
-def get_data(URL = API_ENDPOINT) -> dict:
+
+def get_data(URL=API_ENDPOINT) -> dict:
     r = requests.get(URL)
     return r.json()
 
 
 def main():
     return
+
 
 if __name__ == '__main__':
     database = get_data()
@@ -43,9 +45,9 @@ if __name__ == '__main__':
             if username not in list_of_allowed_cars:
                 list_of_allowed_cars.append(username)
                 index = list_of_allowed_cars.index(username)
-        if allow_charging=='y':
+        if allow_charging == 'y':
             data['allow_charging'] = 'True'
-        if allow_charging=='n':
+        if allow_charging == 'n':
             data['allow_charging'] = 'False'
         if max_charge_percentage is not None:
             data['max_charge_percentage'] = max_charge_percentage
@@ -54,6 +56,3 @@ if __name__ == '__main__':
 
         response = post_data(data)
         print(response)
-    
-
-    
