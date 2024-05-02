@@ -63,7 +63,7 @@ class Car():
             percentage = self.current_charge/MAX_CHARGE_CAPACITY
             number_of_pixels_on = math.floor(percentage * 64)
 
-            for i in number_of_pixels_on:
+            for i in range(number_of_pixels_on):
                 x = i % 8
                 y = i % 8
                 sense.set_pixel(x, y, 0, 255, 0)

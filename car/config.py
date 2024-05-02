@@ -7,6 +7,3 @@ MAX_CHARGING_RATE = 4
 MAX_CHARGE_CAPACITY = 100
 INITIAL_CHARGE = 50
 DISCHARGE_RATE = -4
-
-# Treshold percentage for restarting charging
-CHARGE_TRESHOLD = 20
