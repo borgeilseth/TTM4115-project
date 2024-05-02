@@ -60,13 +60,22 @@ class Car():
             sense.clear(red)
 
         else:
+            sense.clear()
             percentage = self.current_charge/MAX_CHARGE_CAPACITY
             number_of_pixels_on = math.floor(percentage * 64)
 
-            for i in range(number_of_pixels_on):
-                x = i % 8
-                y = i % 8
-                sense.set_pixel(x, y, 0, 255, 0)
+            for y in range(8):
+            # Calculate LEDs to light up in this row
+                leds_in_row = min(number_of_pixels_on, 8)  # Cap at 8 LEDs per row
+                number_of_pixels_on -= leds_in_row  # Decrease the remaining LEDs
+                
+                # Turn on LEDs in this row
+                for x in range(leds_in_row):
+                    sense.set_pixel(x, y, 0, 255, 0)  # Green color for LEDs in this row
+                
+                # Exit loop if no remaining LEDs
+                if number_of_pixels_on <= 0:
+                    break
 
     def update_charge(self, change):
         self.current_charge += change
