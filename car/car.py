@@ -15,7 +15,7 @@ sense = SenseHat()
 green = (0, 255, 0)
 red = (255, 0, 0)
 pink = (255, 0, 255)
-blue = (0, 191, 255)
+black = (0, 0, 0)
 
 
 class Car():
@@ -67,16 +67,15 @@ class Car():
         percentage = self.current_charge/MAX_CHARGE_CAPACITY
         number_of_pixels_on = math.floor(percentage * 64)
 
-        for y in range(8):
+        pixels = []
+        for i in range(8):
+            for j in range(8):
+                if i * 8 + j < number_of_pixels_on:
+                    pixels.append(color)
+                else:
+                    pixels.append(black)
 
-            leds_in_row = min(number_of_pixels_on, 8)
-            number_of_pixels_on -= leds_in_row
-
-            for x in range(leds_in_row):
-                sense.set_pixel(x, y, color)
-
-            if number_of_pixels_on <= 0:
-                break
+        sense.set_pixels(pixels)
 
     def update_charge(self, change):
         self.current_charge += change
@@ -91,7 +90,8 @@ class Car():
         self.refresh_sense_led()
 
     def receive_message(self, message: dict):
-        # print(f"Received message: {message}")
+        global dissalowed
+        print(f"Received message: {message}, dissalowed: {dissalowed}")
         if not message:
             return True
         elif message["status"] == "charging":

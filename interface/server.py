@@ -3,7 +3,7 @@ import requests
 import json
 
 # grid_level = 50 # % of the grid's capacity used
-API_ENDPOINT = "http://127.0.0.1:5001"
+API_ENDPOINT = "http://192.168.227.109:5001"
 
 
 # sending post request and saving response as response object
@@ -30,9 +30,11 @@ if __name__ == '__main__':
     oppdatere = input("Do you want to update the user database? (y/n) ")
     if oppdatere == 'y':
         allow_charging = input("Do you want to allow charging? (y/n) ")
-        allowed_cars = input("Enter car(s) to allow charging (space separated): ") # 1 2 3 4 
+        allowed_cars = input(
+            "Enter car(s) to allow charging (space separated): ")  # 1 2 3 4
         max_charge_percentage = input("Enter max charge percentage: ")
-        max_charge_percentage = int(max_charge_percentage) if max_charge_percentage else None
+        max_charge_percentage = int(
+            max_charge_percentage) if max_charge_percentage else None
         charging_speed = input("Enter charging speed: ")
         charging_speed = int(charging_speed) if charging_speed else None
 
