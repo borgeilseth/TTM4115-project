@@ -9,4 +9,4 @@ INITIAL_CHARGE = 50
 DISCHARGE_RATE = -4
 
 # Treshold percentage for restarting charging
-CHARGE_TRESHOLD = 0
+CHARGE_TRESHOLD = 20

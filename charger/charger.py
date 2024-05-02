@@ -58,6 +58,7 @@ class Charger:
         return True
 
     def check_user_transition(self):
+        print("Checking user...")
         if self.check_user():
             self.stm.send('valid_user')
         else:
@@ -84,14 +85,19 @@ class Charger:
             self.config['capacity'] / 100
         )
 
-        if self.config['current_charge'] >= max_charging_level:
-            self.stm.send('done_charging')
-            return
+        # if self.config['current_charge'] >= max_charging_level:
+        #     self.stm.send('done_charging')
+        #     return
 
         if max_charging_level - self.config['current_charge'] < self.config['charging_speed']:
             self.config['charging_speed'] = max_charging_level - \
                 self.config['current_charge']
-            print(f"Charging speed adjusted to {self.config['charging_speed']}")
+            # if self.config['charging_speed'] > 0:
+            #     print(f"Charging speed adjusted to {
+            #         self.config['charging_speed']}")
+            # else:
+            #     print("Charging complete.")
+            #     return
             return
 
     def build_message(self) -> dict:
@@ -155,8 +161,15 @@ t3 = {
     'effect': 'charge',
 }
 
-# loop transition
 t4 = {
+    'trigger': 're_validate',
+    'source': 'charging',
+    'target': 'validating',
+    'effect': 'check_user_transition',
+}
+
+# loop transition
+t5 = {
     'trigger': 'still_charging',
     'source': 'charging',
     'target': 'charging',
@@ -164,7 +177,7 @@ t4 = {
 }
 
 # done charging
-t5 = {
+t6 = {
     'trigger': 'done_charging',
     'source': 'charging',
     'target': 'disconnected',
@@ -172,14 +185,14 @@ t5 = {
 }
 
 # disconnected, back to idle
-t6 = {
+t7 = {
     'trigger': 'disconnect',
     'source': 'disconnected',
     'target': 'idle',
     'effect': 'done',
 }
 
-t7 = {
+t8 = {
     'trigger': 'disconnect',
     'source': 'charging',
     'target': 'idle',
@@ -189,7 +202,7 @@ t7 = {
 charger = Charger(CONFIG)
 
 machine = Machine(name='charger', transitions=[
-    t0, t1, t2, t3, t4, t5, t6, t7], obj=charger)
+    t0, t1, t2, t3, t4, t5, t6, t7, t8], obj=charger)
 charger.stm = machine
 
 driver = Driver()
@@ -214,6 +227,8 @@ def config():
         # Update configuration parameters
         data = request.get_json()
         charger.set_config(data)
+        if charger.stm and charger.stm.state == 'charging':
+            charger.stm.send('re_validate')
         return jsonify({
             "message": "Configuration updated",
             "new_config": charger.config

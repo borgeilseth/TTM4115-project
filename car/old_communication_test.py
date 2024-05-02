@@ -2,9 +2,12 @@ import socket
 import json
 import time
 from config import *
+import threading
 # from sense_hat import SenseHat
 
 # sense = SenseHat()
+
+dissalowed = False
 
 
 class Car():
@@ -15,8 +18,6 @@ class Car():
             When the car is not connected to the charger
         charging
             When the car is connected to the charger
-        disconnected
-            When the car have recently been disconnected from the charger
     """
 
     state = "idle"
@@ -50,8 +51,6 @@ class Car():
         self.current_charge += change
         if self.current_charge >= MAX_CHARGE_CAPACITY:
             self.current_charge = MAX_CHARGE_CAPACITY
-        if self.current_charge <= MAX_CHARGE_CAPACITY * CHARGE_TRESHOLD / 100 and self.state == "disconnected":
-            self.state = "idle"
         elif self.current_charge < 0:
             self.current_charge = 0
         self.refresh_sense_led()
@@ -61,20 +60,29 @@ class Car():
         self.refresh_sense_led()
 
     def receive_message(self, message: dict):
+        print(f"Received message: {message}")
         if not message:
             return True
         elif message["status"] == "charging":
             self.update_charge(message.get("charging_speed", 0))
-            print(f"Current charge: {self.current_charge}")
+            self.set_state("charging")
+            print(f"Current charge: {
+                  self.current_charge}, State: {self.state}")
             return True
         elif message["status"] == "disconnect":
-            self.state = "disconnected"
-            print("Disconnected from charger")
+            threading.Thread(target=dissalow_timeouts).start()
             return False
         return True
 
 
 car = Car()
+
+
+def dissalow_timeouts():
+    global dissalowed
+    dissalowed = True
+    time.sleep(10)
+    dissalowed = False
 
 
 def send_message(sock, message):
@@ -86,15 +94,16 @@ def send_message(sock, message):
 
 
 def start_client(server_host='127.0.0.1', server_port=65439):
+    global dissalowed
     while True:
-        print(f"Current charge: {car.current_charge}")
+        print(f"Current charge: {car.current_charge}, State: {car.state}")
 
-        if not car.state == "disconnected":
+        if not dissalowed:
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 
                     sock.connect((server_host, server_port))
-                    print("Charging")
+                    # print("Charging")
 
                     send_message(sock, car.build_connect_message())
                     while True:
@@ -113,6 +122,7 @@ def start_client(server_host='127.0.0.1', server_port=65439):
             except socket.error:
                 pass
 
+        car.set_state("idle")
         car.update_charge(DISCHARGE_RATE)
         time.sleep(1)
 
