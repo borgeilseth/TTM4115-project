@@ -9,6 +9,8 @@ from sense_hat import SenseHat
 
 dissalowed = False
 
+car = None
+
 sense = SenseHat()
 green = (0, 255, 0)
 red = (255, 0, 0)
@@ -55,32 +57,26 @@ class Car():
 
     def refresh_sense_led(self):
         global sense
-        color = None
         # Change the sense led color according to the charge and state
         if self.state == "idle":
             color = red
         elif self.state == "charging":
             color = green
 
-        else:
-            sense.clear()
-            percentage = self.current_charge/MAX_CHARGE_CAPACITY
-            number_of_pixels_on = math.floor(percentage * 64)
+        sense.clear()
+        percentage = self.current_charge/MAX_CHARGE_CAPACITY
+        number_of_pixels_on = math.floor(percentage * 64)
 
-            for y in range(8):
-                # Calculate LEDs to light up in this row
-                # Cap at 8 LEDs per row
-                leds_in_row = min(number_of_pixels_on, 8)
-                number_of_pixels_on -= leds_in_row  # Decrease the remaining LEDs
+        for y in range(8):
 
-                # Turn on LEDs in this row
-                for x in range(leds_in_row):
-                    # Green color for LEDs in this row
-                    sense.set_pixel(x, y, color)
+            leds_in_row = min(number_of_pixels_on, 8)
+            number_of_pixels_on -= leds_in_row
 
-                # Exit loop if no remaining LEDs
-                if number_of_pixels_on <= 0:
-                    break
+            for x in range(leds_in_row):
+                sense.set_pixel(x, y, color)
+
+            if number_of_pixels_on <= 0:
+                break
 
     def update_charge(self, change):
         self.current_charge += change
@@ -127,6 +123,7 @@ def send_message(sock, message):
 
 
 def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
+    global car
     global dissalowed
     while True:
 
@@ -157,11 +154,17 @@ def start_client(server_host=CHARGER_IP, server_port=CHARGER_PORT):
 
 
 def update_car():
-    print(f"Current charge: {car.current_charge}, State: {car.state}")
     global car
-    if not car.state == "idle":
-        car.update_charge(DISCHARGE_RATE)
-    time.sleep(1)
+    global sense
+
+    try:
+        while True:
+            print(f"Current charge: {car.current_charge}, State: {car.state}")
+            if car.state == "idle":
+                car.update_charge(DISCHARGE_RATE)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        sense.clear()
 
 
 if __name__ == "__main__":

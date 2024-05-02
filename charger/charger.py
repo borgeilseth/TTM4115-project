@@ -239,7 +239,7 @@ def config():
 
 
 def start_flask():
-    app.run(port=5001, debug=False, host='0.0.0.0')
+    app.run(port=5001, debug=False, host='192.168.227.109')
 
 
 def server_socket_setup(ip=CHARGER_IP, port=CHARGER_PORT):
